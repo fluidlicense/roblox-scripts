@@ -1,13 +1,5 @@
--- Arena de Snipers — Full Hack v1.1 (fixed)
--- Real Executor | loadstring compatible
--- fix: Drawing.Fonts fallback · mouse1click pcall · F10 keybind · GUI parent robusto
--- ══════════════════════════════════════════════════════════
--- BOOT GUARD — trava erros silenciosos na inicialização
--- ══════════════════════════════════════════════════════════
-local ok, err = pcall(function()
--- ══════════════════════════════════════════════════════════
--- SERVIÇOS
--- ══════════════════════════════════════════════════════════
+-- Arena de Snipers — Full Hack v1.2
+-- Real Executor | sem Drawing API | BillboardGui ESP | F10 = menu
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -17,16 +9,16 @@ local lp  = Players.LocalPlayer
 local cam = workspace.CurrentCamera
 local RNG = Random.new()
 -- ══════════════════════════════════════════════════════════
--- EVASÃO SAFE
+-- EVASÃO
 -- ══════════════════════════════════════════════════════════
 local function jitter(base, pct)
     pct = pct or 0.2
-    local noise = math.abs(base * pct)
-    return base + RNG:NextNumber(-noise, noise)
+    local n = math.abs(base * pct)
+    return base + RNG:NextNumber(-n, n)
 end
 local function humanWait(base)
     local t = jitter(math.abs(base), 0.3)
-    if RNG:NextNumber() < 0.07 then t = t + RNG:NextNumber(0.2, 0.8) end
+    if RNG:NextNumber() < 0.07 then t = t + RNG:NextNumber(0.2, 0.7) end
     task.wait(math.max(t, 0.01))
 end
 -- ══════════════════════════════════════════════════════════
@@ -34,14 +26,19 @@ end
 -- ══════════════════════════════════════════════════════════
 local CFG = {
     AimbotOn   = false,
-    SilentAim  = false,
     AutoShoot  = false,
     NoRecoil   = false,
     ESPOn      = false,
-    ShowBoxes  = true,
-    ShowHealth = true,
-    ShowName   = true,
-    ShowDist   = true,
-    ShowSkel   = false,
     NoclipOn   = false,
     TeamCheck  = true,
+    Smoothness = 0.18,
+    FOV        = 120,
+    MaxDist    = 800,
+    SpeedMult  = 1.0,
+    Bone       = "Head",
+    AimKey     = Enum.UserInputType.MouseButton2,
+    ToggleKey  = Enum.KeyCode.F10,
+    Accent     = Color3.fromRGB(255, 70, 70),
+    AccentDark = Color3.fromRGB(180, 40, 40),
+    BG         = Color3.fromRGB(12, 12, 18),
+    Surface    = Color3.fromRGB(22, 22, 32),
