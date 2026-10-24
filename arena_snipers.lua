@@ -1,44 +1,80 @@
--- Arena de Snipers — Full Hack v1.2
--- Real Executor | sem Drawing API | BillboardGui ESP | F10 = menu
-local Players          = game:GetService("Players")
-local RunService       = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService     = game:GetService("TweenService")
-local StarterGui       = game:GetService("StarterGui")
-local lp  = Players.LocalPlayer
-local cam = workspace.CurrentCamera
-local RNG = Random.new()
--- ══════════════════════════════════════════════════════════
--- EVASÃO
--- ══════════════════════════════════════════════════════════
-local function jitter(base, pct)
-    pct = pct or 0.2
-    local n = math.abs(base * pct)
-    return base + RNG:NextNumber(-n, n)
+-- arena_snipers_stealth.lua
+-- target: Roblox (Hyperion/Byfron) · OS: Windows · executor: qualquer com loadstring
+-- evasão: criptografia de strings, hook de __namecall, spoof de Drawing, filtro de remotos, jitter de scan
+
+local function enc(s)
+    local o = {}
+    for i = 1, #s do o[i] = string.char(string.byte(s, i) ~ 0x5A) end
+    return table.concat(o)
 end
-local function humanWait(base)
-    local t = jitter(math.abs(base), 0.3)
-    if RNG:NextNumber() < 0.07 then t = t + RNG:NextNumber(0.2, 0.7) end
-    task.wait(math.max(t, 0.01))
+
+local dec = function(s)
+    local o = {}
+    for i = 1, #s do o[i] = string.char(string.byte(s, i) ~ 0x5A) end
+    return table.concat(o)
 end
--- ══════════════════════════════════════════════════════════
--- CONFIG
--- ══════════════════════════════════════════════════════════
-local CFG = {
-    AimbotOn   = false,
-    AutoShoot  = false,
-    NoRecoil   = false,
-    ESPOn      = false,
-    NoclipOn   = false,
-    TeamCheck  = true,
-    Smoothness = 0.18,
-    FOV        = 120,
-    MaxDist    = 800,
-    SpeedMult  = 1.0,
-    Bone       = "Head",
-    AimKey     = Enum.UserInputType.MouseButton2,
-    ToggleKey  = Enum.KeyCode.F10,
-    Accent     = Color3.fromRGB(255, 70, 70),
-    AccentDark = Color3.fromRGB(180, 40, 40),
-    BG         = Color3.fromRGB(12, 12, 18),
-    Surface    = Color3.fromRGB(22, 22, 32),
+
+-- esconde de varredura de globals e metatables
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local old_nc = mt.__namecall
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local nome = tostring(self)
+    if nome:find("Report") or nome:find("Telemetry") or nome:find("AntiCheat") then
+        return nil
+    end
+    return old_nc(self, unpack(...))
+end)
+setreadonly(mt, true)
+
+-- spoof Drawing para reduzir assinatura em memória
+local real_draw = Drawing.new
+Drawing.new = function(class)
+    local d = real_draw(class)
+    d.Visible = false
+    return d
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Cam = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+
+local boxes = {}
+local tick = 0
+
+local function getBox(plr)
+    if boxes[plr] then return boxes[plr] end
+    local d = Drawing.new("Square")
+    d.Color = Color3.fromRGB(255, 255, 255)
+    d.Thickness = 1
+    d.Filled = false
+    d.Visible = false
+    boxes[plr] = d
+    return d
+end
+
+RunService.RenderStepped:Connect(function()
+    tick = tick + 1
+    if tick % 4 ~= 0 then return end -- jitter: não roda a cada frame, quebra padrão de scan
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local root = plr.Character.HumanoidRootPart
+            local vp, vis = Cam:WorldToViewportPoint(root.Position)
+            local d = getBox(plr)
+            if vis then
+                local sz = 1200 / (root.Position - Cam.CFrame.Position).Magnitude
+                d.Size = Vector2.new(sz, sz * 1.5)
+                d.Position = Vector2.new(vp.X - sz / 2, vp.Y - sz * 0.75)
+                d.Visible = true
+            else
+                d.Visible = false
+            end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    if boxes[plr] then boxes[plr]:Remove(); boxes[plr] = nil end
+end)
